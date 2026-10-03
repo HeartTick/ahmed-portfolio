@@ -2,7 +2,13 @@
 
 Personal portfolio of **Ahmed Khan Patan**, Python software engineer (backend, APIs, AWS, data workflows) and M.Sc. Computational Modeling and Simulation student at TU Dresden.
 
-The site is statically generated: no database and no paid services. The only server code is the optional **Ask Ahmed AI** route, and the site works fully without it.
+The site is statically generated and needs no paid services. All portfolio content stays in local files (`config/`, `data/`).
+
+Supabase is an optional enhancement layer used by two server routes:
+- the **contact form**
+- the **Ask Ahmed AI** usage quotas
+
+If Supabase is missing or down, the portfolio still renders and works normally.
 
 ## Stack
 
@@ -13,6 +19,7 @@ The site is statically generated: no database and no paid services. The only ser
 - Lucide icons (+ two inline brand SVGs)
 - Motion, used only for the nav indicator and the "How I build" pipeline
 - GroqCloud (optional) for Ask Ahmed AI, called with `fetch` from a server route (no SDK)
+- Supabase Postgres (optional) for contact inquiries and AI quotas, called with `fetch` from server routes (no SDK)
 
 ## Requirements
 
@@ -42,8 +49,10 @@ npm run dev          # http://localhost:3000
 app/                    routes, metadata, OG image, robots, sitemap, favicon
   projects/[slug]/      project case-study pages (statically generated)
   api/ask-ahmed/        Ask Ahmed AI route handler (server-only)
+  api/contact/          contact form route handler (server-only)
 components/
   assistant/            Ask Ahmed AI client UI + safe answer renderer
+  contact/              contact form (client)
   layout/               navbar, footer, background
   sections/             home page sections
   projects/             project flow diagram
@@ -52,6 +61,11 @@ components/
 config/site.ts          name, email, social links, résumé path, site URL, portrait
 data/                   all page content
 lib/ai/                 AI context, system prompt, provider abstraction (server-only)
+lib/supabase/server.ts  server-only Supabase RPC helper
+lib/session.ts          anonymous session cookie + hashing (server-only)
+lib/usage-limits.ts     configurable daily limits (server-only)
+lib/contact/            contact validation shared by browser and server
+supabase/migrations/    SQL migrations (tables, functions, RLS, grants)
 public/                 résumé PDF and static assets
 ```
 
@@ -69,6 +83,7 @@ All text lives in `config/` and `data/`; components contain no personal details.
 | Education                                     | `data/education.ts`   |
 | "Engineering in practice" + "How I build"     | `data/practice.ts`    |
 | Ask Ahmed AI copy and suggested questions     | `data/assistant.ts`   |
+| Contact form copy                             | `data/contact.ts`     |
 
 Adding a project: append an entry to `data/projects.ts`. Its page at `/projects/<slug>` and sitemap entry are generated automatically. Add `links` only for URLs that really exist; the Links block is hidden when empty. To give it flow-diagram icons, add the slug to `iconsBySlug` in `components/projects/flow-diagram.tsx`.
 
@@ -92,6 +107,14 @@ None are required. See `.env.example`.
 | `NEXT_PUBLIC_SITE_URL` | No       | Canonical base URL for metadata, sitemap and OG tags. Set it once a custom domain is attached. |
 | `GROQ_API_KEY`         | No       | Enables Ask Ahmed AI. Server-side secret: never prefix it with `NEXT_PUBLIC_`.                 |
 | `GROQ_MODEL`           | No       | Groq model ID for Ask Ahmed AI. Defaults to `openai/gpt-oss-120b`.                             |
+| `SUPABASE_URL`         | No\*     | Supabase project URL. Enables the contact form and AI quotas. Server-only.                     |
+| `SUPABASE_SECRET_KEY`  | No\*     | Supabase secret key (`sb_secret_…`). Server-side secret: never prefix it with `NEXT_PUBLIC_`.  |
+| `AI_DAILY_SESSION_LIMIT` | No     | Ask Ahmed AI questions per browser per UTC day. Default `5`.                                   |
+| `AI_GLOBAL_DAILY_LIMIT`  | No     | Ask Ahmed AI questions across all visitors per UTC day. Default `40`.                          |
+| `CONTACT_DAILY_SESSION_LIMIT` | No | Successful contact submissions per browser per UTC day. Default `3`.                          |
+| `AI_QUOTA_DEV_BYPASS`  | No       | `true` lets Ask Ahmed AI run without Supabase on `npm run dev` only. Ignored in production.   |
+
+\* Ask Ahmed AI requires Supabase as well as `GROQ_API_KEY`: in production it refuses to call Groq without quota protection.
 
 When the variable isn't set, the site URL comes from Vercel's `VERCEL_PROJECT_PRODUCTION_URL` (set automatically), and `http://localhost:3000` is used locally.
 
@@ -109,7 +132,7 @@ When the variable isn't set, the site URL comes from Vercel's `VERCEL_PROJECT_PR
 2. Sign in to [vercel.com](https://vercel.com) with GitHub (the Hobby plan is free).
 3. Click **Add New → Project** and import the repository.
 4. Check that the Framework Preset says **Next.js**. Leave the build and output settings at their defaults.
-5. Leave environment variables empty, or add `GROQ_API_KEY` (and optionally `GROQ_MODEL`) to enable Ask Ahmed AI. See [Ask Ahmed AI](#ask-ahmed-ai).
+5. Leave environment variables empty, or add the [Supabase](#supabase-contact-form-and-ai-quotas) variables (contact form) plus `GROQ_API_KEY` (Ask Ahmed AI).
 6. Click **Deploy**. You get a URL like `https://<project>.vercel.app`.
 7. Pushes to `main` redeploy automatically, and pull requests get preview URLs.
 
@@ -180,7 +203,8 @@ The rules apply identically in every language, followed by a sentence-by-sentenc
 
 - **Request limits:** questions are capped at 500 characters and request bodies at 4 KB. JSON is validated server-side, and cross-site requests are rejected.
 - **Answer limits:** up to 1,600 completion tokens (this includes hidden reasoning; visible answers are kept short by the prompt) and temperature 0.
-- **Rate limit:** at most 30 requests per minute per server instance. This is a global counter that stores no IPs or visitor identifiers.
+- **Burst limit:** at most 30 requests per minute per server instance (in memory, no identifiers).
+- **Daily quotas:** per browser and site-wide, stored in Supabase. See [Supabase](#supabase-contact-form-and-ai-quotas).
 - **Safe rendering:** answers are plain text turned into React elements (paragraphs, lists, **bold**). Model output is never injected as HTML, and links aren't rendered.
 - **Stateless:** questions and answers aren't stored or logged. Server logs only record upstream error types.
 
@@ -190,11 +214,122 @@ The rest of the portfolio never depends on the assistant.
 
 | Situation                             | What visitors see                                                        |
 | ------------------------------------- | ------------------------------------------------------------------------ |
-| `GROQ_API_KEY` missing                | "Temporarily unavailable" notice in the section; input disabled          |
-| Groq down, network error, invalid key | "The portfolio assistant is temporarily unavailable…"                    |
+| `GROQ_API_KEY` or Supabase missing    | "Temporarily unavailable" notice in the section; input disabled          |
+| Groq down, network error, invalid key | "The portfolio assistant is temporarily unavailable…" (quota refunded)   |
+| Supabase down (quota can't be verified) | "Temporarily unavailable…"; Groq is **not** called (fails closed)       |
+| Daily limit reached (browser or site) | "You've reached today's portfolio AI limit…"; input disabled             |
 | Groq or local rate limit              | "The assistant is getting a lot of questions right now…"                 |
 | Stream interrupted                    | Partial answer kept, plus "The answer was interrupted…"                  |
 | Off-topic question                    | Polite reply that it only covers Ahmed's portfolio                       |
+
+## Supabase: contact form and AI quotas
+
+Supabase Postgres stores two things: contact-form inquiries, and anonymous daily usage counters for Ask Ahmed AI. Portfolio content is **not** stored there.
+
+### Setup
+
+1. **Create a project** at [supabase.com/dashboard](https://supabase.com/dashboard): **New project**. Pick a region near your visitors (e.g. Frankfurt, `eu-central-1`) and save the database password somewhere safe.
+2. **Find the project URL:** **Project Settings → Data API** (or the **Connect** button at the top). It looks like `https://<project-ref>.supabase.co`.
+3. **Get a secret key:** **Project Settings → API Keys → Secret keys**. Create a secret key named e.g. `portfolio-server` (or reveal the default one) and copy it (`sb_secret_…`).
+   - Never use it in browser code or a `NEXT_PUBLIC_` variable.
+   - The legacy `service_role` JWT also works, but Supabase is phasing legacy keys out.
+4. **Run the migration:** **SQL Editor → New query**, paste the full contents of `supabase/migrations/20261003000000_contact_inquiries_and_usage_limits.sql`, and click **Run**. It should finish with "Success. No rows returned".
+   - Alternatively, with the CLI: `npx supabase link --project-ref <project-ref>` then `npx supabase db push`.
+5. **Configure `.env.local`:**
+   ```bash
+   SUPABASE_URL=https://<project-ref>.supabase.co
+   SUPABASE_SECRET_KEY=sb_secret_...
+   GROQ_API_KEY=gsk_...
+   # optional, defaults shown
+   AI_DAILY_SESSION_LIMIT=5
+   AI_GLOBAL_DAILY_LIMIT=40
+   CONTACT_DAILY_SESSION_LIMIT=3
+   ```
+6. **Restart** `npm run dev` (environment files are read at startup). For `npm run start`, run `npm run build` again: the home page is static, so it decides at build time whether to show the form and the assistant.
+7. **Test the contact form:** send a message on the home page.
+   - It appears in **Table Editor → `contact_inquiries`** with status `new`.
+   - Submitting more than `CONTACT_DAILY_SESSION_LIMIT` times from one browser shows the daily-limit message.
+8. **Test AI quotas:** ask questions until the per-browser limit is reached.
+   - **Table Editor → `ai_usage_daily`** shows one row per browser per day (a hash, the date, a count).
+   - **`ai_usage_global_daily`** shows the site-wide total.
+   - Set `AI_DAILY_SESSION_LIMIT=2` temporarily to test quickly.
+9. **Add the variables in Vercel:** **Project → Settings → Environment Variables**. Add `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GROQ_API_KEY`, and optionally the limit variables, for Production (and Preview if wanted).
+10. **Redeploy:** **Deployments → … → Redeploy**, or push a commit. A redeploy is needed because the home page is built statically.
+
+### Managing inquiries
+
+Open **Table Editor → `contact_inquiries`**. Change `status` from `new` to `read` or `archived` by editing the cell. `updated_at` is set automatically, and any other status value is rejected. There is no custom admin UI yet.
+
+### Security design
+
+- **Server-only access:** browsers never talk to Supabase.
+  - `/api/contact` and `/api/ask-ahmed` call Postgres functions through Supabase's REST API with the secret key, sent in the `apikey` header as Supabase recommends.
+  - The key is read only by `lib/supabase/server.ts`, which imports `server-only`, so the build fails if a client component imports it. It never appears in browser JavaScript.
+- **RLS on every table, with no policies:** `anon` and `authenticated` (publishable key, signed-in users) can neither read nor write any row. The secret key maps to `service_role`, which bypasses RLS.
+- **Revoked grants (defence in depth):** all table and function privileges are revoked from `public`, `anon` and `authenticated`. Only `service_role` may use the tables and execute the functions. Even an accidental future `grant select … to anon` would return no rows, because RLS still applies.
+- **Functions only, no ad-hoc SQL:** the app never builds SQL. It calls three functions with typed JSON arguments:
+  - `submit_contact_inquiry`
+  - `consume_ai_quota`
+  - `refund_ai_quota`
+
+  They run with `security invoker` and an empty `search_path`. Column `CHECK` constraints re-validate lengths, email format and status values inside the database.
+- **Opaque errors:** database errors are logged server-side as a status and code only. Visitors only ever see generic messages.
+
+### Anonymous session (abuse protection only)
+
+- **Identifier:** on the first contact or AI request, the server creates 32 cryptographically random bytes and stores them in a `portfolio_session` cookie.
+- **Cookie flags:** `HttpOnly`, `SameSite=Lax`, `Path=/api`, `Secure` in production, and a fixed 30-day lifetime that isn't renewed on use.
+- **Not tracking:** the identifier isn't derived from IP addresses, user agents or any fingerprinting, and it's used for nothing except rate limits.
+- **Hashed before storage:** the database only ever receives `SHA-256("portfolio_session:v1:" + id)` as a 64-character hex string. Because the id is 256 bits of randomness, the hash can't be reversed or guessed. The raw cookie value is never stored or logged.
+- **Clearing cookies resets the per-browser limits.** That's why a site-wide daily limit exists as a second layer.
+
+### Quota algorithm
+
+`consume_ai_quota(session_hash, session_limit, global_limit)` runs as a single transaction:
+
+1. Ensures today's site-wide row exists (UTC date) and locks it with `SELECT … FOR UPDATE`.
+2. Ensures the browser's row for today exists and locks it.
+3. If either count is at its limit, returns `allowed = false` with `session_limit` or `global_limit`.
+4. Otherwise increments both counters and returns `allowed = true` plus the questions remaining for that browser.
+
+Row locks serialize concurrent requests, so parallel requests can't bypass a limit through a read-then-write race. Locks are always taken in the same order (global row, then browser row), so they can't deadlock.
+
+The route's order is: validate → off-topic filter → burst limiter → session → quota → Groq. Off-topic and invalid requests never consume quota. If Groq fails before answering, `refund_ai_quota` gives the request back. Contact submissions use the same pattern in `submit_contact_inquiry`, and only successful submissions are counted.
+
+The first request of each day prunes old rows: per-browser counters after 7 days, site-wide totals after 90 days.
+
+### What is stored
+
+| Table                   | Columns                                                                 |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `contact_inquiries`     | `id`, `name`, `email`, `company` (optional), `message`, `status`, `created_at`, `updated_at` |
+| `contact_usage_daily`   | `session_hash`, `usage_date`, `submission_count`, `created_at`, `updated_at` |
+| `ai_usage_daily`        | `session_hash`, `usage_date`, `request_count`, `created_at`, `updated_at` |
+| `ai_usage_global_daily` | `usage_date`, `request_count`, `created_at`, `updated_at`               |
+
+**Not stored:** IP addresses, user agents, AI questions or answers, conversation history, raw session identifiers, fingerprints, phone numbers.
+
+### Contact spam protection
+
+The protection is lightweight, with no CAPTCHA:
+
+- a hidden honeypot field (bots that fill it get a fake success, and nothing is stored)
+- a minimum completion time of 3 seconds after the first interaction with the form
+- a 12 KB request-body limit
+- server-side validation of an allow-listed set of fields
+- the per-browser daily limit
+
+### Failure behaviour
+
+| Situation                                | Contact form                                                       | Ask Ahmed AI                                  |
+| ---------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------- |
+| Supabase env vars missing at build time  | Notice with the direct email address instead of the form           | Shown as unavailable (unless dev bypass)      |
+| Supabase down or erroring at runtime     | "Couldn't be sent right now…" + direct email link; typed text kept | "Temporarily unavailable"; Groq not called    |
+| Daily limit reached                      | Limit message + direct email link                                  | Limit message; input disabled                 |
+
+Everything else keeps working in all of these cases: static content, navigation, project pages and the résumé download.
+
+**Local development without Supabase:** set `AI_QUOTA_DEV_BYPASS=true` in `.env.local` to try Ask Ahmed AI on `npm run dev` without quotas. The bypass is only honoured when `NODE_ENV=development`. `next build`, `next start` and Vercel always run in production mode, so it can't leak into a deployment.
 
 ## Custom or student domain (optional, later)
 

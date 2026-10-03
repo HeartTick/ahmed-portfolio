@@ -13,6 +13,13 @@ export const assistantCopy = {
   unavailable:
     "The portfolio assistant is temporarily unavailable. You can still explore my experience and projects on this page.",
   disclaimer: "AI-generated from this site's content. Check the sections above for the exact details.",
+  sessionLimit:
+    "You've reached today's portfolio AI limit. You can still explore my experience and projects on this page.",
+  globalLimit:
+    "The portfolio assistant has reached its limit for today. You can still explore my experience and projects on this page.",
+  /** Shown quietly after an answer, only when few questions are left. */
+  remaining: (n: number) =>
+    n === 0 ? "That was your last question for today." : `${n} ${n === 1 ? "question" : "questions"} left today`,
 };
 
 export const suggestedQuestions = [

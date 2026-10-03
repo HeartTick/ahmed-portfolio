@@ -1,12 +1,16 @@
 import { Check } from "lucide-react";
 import { assistantCopy } from "@/data/assistant";
 import { isAssistantConfigured } from "@/lib/ai/provider";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { isAiQuotaDevBypassEnabled } from "@/lib/usage-limits";
 import { Section } from "@/components/ui/section";
 import { AskAhmed } from "@/components/assistant/ask-ahmed";
 
 /** Server wrapper: only a boolean about configuration reaches the client. */
 export function AskAhmedSection() {
-  const available = isAssistantConfigured();
+  // The route refuses to call the provider without quota protection, so the
+  // assistant is only offered when both are configured (or in explicit dev bypass).
+  const available = isAssistantConfigured() && (isSupabaseConfigured() || isAiQuotaDevBypassEnabled());
 
   return (
     <Section id="ask" eyebrow={assistantCopy.eyebrow} title={assistantCopy.title}>
