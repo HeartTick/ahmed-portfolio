@@ -10,6 +10,7 @@ import { Skills } from "@/components/sections/skills";
 import { HowIBuild } from "@/components/sections/how-i-build";
 import { Education } from "@/components/sections/education";
 import { Contact } from "@/components/sections/contact";
+import { AskAhmedSection } from "@/components/sections/ask-ahmed-section";
 import { Section } from "@/components/ui/section";
 
 function PersonJsonLd() {
@@ -55,6 +56,7 @@ export default function HomePage() {
         <HowIBuild />
       </Section>
       <Education />
+      <AskAhmedSection />
       <Contact />
     </>
   );

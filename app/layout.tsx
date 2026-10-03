@@ -53,7 +53,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    // data-scroll-behavior: Next 16 only switches to instant scrolling during route
+    // transitions (e.g. /projects/x -> /#projects) when this is set; otherwise the
+    // global smooth scroll races the incoming page and can miss the anchor.
+    <html lang="en" data-scroll-behavior="smooth" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body className="min-h-dvh">
         <a
           href="#main"

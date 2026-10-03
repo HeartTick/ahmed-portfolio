@@ -29,10 +29,21 @@
 /* ------------------------------------------------------------------ */
 
 @layer base {
+  :root {
+    /* Fixed navbar: mt-3 (0.75rem) + h-14 (3.5rem). Keep in sync with components/layout/navbar.tsx. */
+    --nav-height: 4.25rem;
+    /* Where an anchored section's top lands: below the navbar plus breathing room. */
+    --anchor-offset: calc(var(--nav-height) + 1.75rem);
+  }
+
+  /* Every in-page navigation target (About, Experience, …, Ask AI, Contact). */
+  section[id] {
+    scroll-margin-top: var(--anchor-offset);
+  }
+
   html {
     color-scheme: dark;
     scroll-behavior: smooth;
-    scroll-padding-top: 6rem;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -278,6 +289,17 @@
   }
 }
 
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes scroll-progress {
   from {
     transform: scaleX(0);
@@ -300,6 +322,10 @@
 
   .pulse-soft {
     animation: pulse-soft 3.2s ease-in-out infinite;
+  }
+
+  .caret {
+    animation: caret-blink 1s steps(1) infinite;
   }
 
   .packet-y {

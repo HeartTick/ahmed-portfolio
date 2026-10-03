@@ -112,12 +112,12 @@ export function Navbar() {
           {navItems.map((item) => {
             const isActive = active === item.id;
             return (
-              <li key={item.id} className="relative">
+              <li key={item.id} className={cn("relative", item.wideOnly && "hidden lg:block")}>
                 <a
                   href={href(item.id)}
                   aria-current={isActive ? "true" : undefined}
                   className={cn(
-                    "relative z-10 block rounded-lg px-3 py-1.5 text-sm transition-colors",
+                    "relative z-10 block rounded-lg px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
                     isActive ? "text-fg" : "text-muted hover:text-fg",
                   )}
                 >

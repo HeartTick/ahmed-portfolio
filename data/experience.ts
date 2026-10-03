@@ -35,7 +35,7 @@ export const experience: Role[] = [
       "Built Python automation and data-processing workflows spanning structured files, REST APIs, PostgreSQL-backed applications and AWS services.",
       "Developed and maintained Django and Flask services covering validation, structured persistence, API integrations and production troubleshooting.",
       "Designed an 8-system automation pipeline across 2 AWS accounts, and validated data movement with logs, database checks and end-to-end test scenarios.",
-      "Worked day to day with Git/GitHub, Docker, Linux, GitHub Actions CI/CD, PostgreSQL, Redis and JSON/XML processing, using Claude and GitHub Copilot for AI-assisted development.",
+      "Worked with Git/GitHub, Docker, Linux, GitHub Actions CI/CD, PostgreSQL, Redis and JSON/XML processing, using Claude and GitHub Copilot for AI-assisted development.",
     ],
     stack: [
       "Python",
