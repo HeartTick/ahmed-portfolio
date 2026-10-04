@@ -2,6 +2,8 @@ import { Briefcase } from "lucide-react";
 import { experience, pipelinePhrase, type Role } from "@/data/experience";
 import { Section } from "@/components/ui/section";
 import { PipelineDiagram } from "@/components/visuals/pipeline-diagram";
+import { LensBadge } from "@/components/recruiter-lens/lens-badge";
+import { lensAttrs, lensesForHighlight, lensesForPipeline, lensesForRole, lensesForRoleStackItem } from "@/lib/recruiter-lens/relevance";
 import { cn } from "@/lib/utils";
 
 /** Bold the headline pipeline fact wherever it appears, as on the résumé. */
@@ -31,7 +33,11 @@ function RoleMeta({ role }: { role: Role }) {
 
 function RoleCard({ role }: { role: Role }) {
   return (
-    <article className={cn("reveal card p-6 sm:p-8", role.featured && "border-white/12")}>
+    <article
+      className={cn("reveal card p-6 sm:p-8", role.featured && "border-white/12")}
+      {...lensAttrs(lensesForRole(role), { dim: false })}
+    >
+      <LensBadge />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 className={cn("font-semibold tracking-tight text-fg", role.featured ? "text-xl sm:text-2xl" : "text-lg")}>
@@ -46,22 +52,22 @@ function RoleCard({ role }: { role: Role }) {
 
       <ul className="mt-5 space-y-3 text-sm leading-relaxed text-muted sm:text-[15px]">
         {role.highlights.map((h) => (
-          <li key={h} className="flex gap-3">
+          <li key={h.id} className="relative flex gap-3" data-lens-bullet="" {...lensAttrs(lensesForHighlight(h.id))}>
             <span aria-hidden="true" className="mt-[0.6em] size-1.5 shrink-0 rounded-full bg-cyan/70" />
-            <span>{emphasize(h)}</span>
+            <span>{emphasize(h.text)}</span>
           </li>
         ))}
       </ul>
 
       {role.featured ? (
         <div className="mt-8">
-          <PipelineDiagram />
+          <PipelineDiagram {...lensAttrs(lensesForPipeline())} />
         </div>
       ) : null}
 
       <ul className="mt-6 flex flex-wrap gap-2" aria-label={`Technologies used as ${role.title}`}>
         {role.stack.map((t) => (
-          <li key={t} className="chip">
+          <li key={t} className="chip" {...lensAttrs(lensesForRoleStackItem(role, t))}>
             {t}
           </li>
         ))}

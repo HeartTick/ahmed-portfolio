@@ -20,9 +20,10 @@ function SystemNode({ n }: { n: number }) {
   );
 }
 
-export function PipelineDiagram() {
+/** Extra attributes (e.g. Recruiter Lens data-* tags) are passed to the <figure>. */
+export function PipelineDiagram(props: Record<`data-${string}`, string>) {
   return (
-    <figure className="card overflow-hidden p-5 sm:p-6">
+    <figure {...props} className="card overflow-hidden p-5 sm:p-6">
       <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="text-sm font-medium text-fg">
           {pipelineFact.systems}-system automation pipeline · {pipelineFact.accounts} AWS accounts

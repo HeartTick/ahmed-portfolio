@@ -1,5 +1,8 @@
 /** Professional experience. Wording follows the résumé; edit here only. */
 
+/** A résumé statement. The id is a stable handle (used by Recruiter Lens); the text is what is shown. */
+export type Highlight = { id: string; text: string };
+
 export type Role = {
   id: string;
   company: string;
@@ -13,7 +16,7 @@ export type Role = {
   mode: string;
   featured: boolean;
   summary: string;
-  highlights: string[];
+  highlights: Highlight[];
   stack: string[];
 };
 
@@ -32,10 +35,22 @@ export const experience: Role[] = [
     summary:
       "Backend and automation work in Python across structured files, REST APIs, PostgreSQL-backed applications and AWS services.",
     highlights: [
-      "Built Python automation and data-processing workflows spanning structured files, REST APIs, PostgreSQL-backed applications and AWS services.",
-      "Developed and maintained Django and Flask services covering validation, structured persistence, API integrations and production troubleshooting.",
-      "Designed an 8-system automation pipeline across 2 AWS accounts, and validated data movement with logs, database checks and end-to-end test scenarios.",
-      "Worked day to day with Git/GitHub, Docker, Linux, GitHub Actions CI/CD, PostgreSQL, Redis and JSON/XML processing, using Claude and GitHub Copilot for AI-assisted development.",
+      {
+        id: "automation-workflows",
+        text: "Built Python automation and data-processing workflows spanning structured files, REST APIs, PostgreSQL-backed applications and AWS services.",
+      },
+      {
+        id: "django-flask-services",
+        text: "Developed and maintained Django and Flask services covering validation, structured persistence, API integrations and production troubleshooting.",
+      },
+      {
+        id: "aws-automation-pipeline",
+        text: "Designed an 8-system automation pipeline across 2 AWS accounts, and validated data movement with logs, database checks and end-to-end test scenarios.",
+      },
+      {
+        id: "engineering-tooling",
+        text: "Worked with Git/GitHub, Docker, Linux, GitHub Actions CI/CD, PostgreSQL, Redis and JSON/XML processing, using Claude and GitHub Copilot for AI-assisted development.",
+      },
     ],
     stack: [
       "Python",
@@ -64,7 +79,10 @@ export const experience: Role[] = [
     featured: false,
     summary: "Data processing with Python scripts for Excel-based operational data.",
     highlights: [
-      "Built Python scripts to clean, transform, validate and process Excel workbooks into structured operational outputs.",
+      {
+        id: "excel-processing-scripts",
+        text: "Built Python scripts to clean, transform, validate and process Excel workbooks into structured operational outputs.",
+      },
     ],
     stack: ["Python", "Excel data processing", "Data validation"],
   },

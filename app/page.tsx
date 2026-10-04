@@ -10,7 +10,10 @@ import { Skills } from "@/components/sections/skills";
 import { HowIBuild } from "@/components/sections/how-i-build";
 import { Education } from "@/components/sections/education";
 import { Contact } from "@/components/sections/contact";
+import { AskAhmedSection } from "@/components/sections/ask-ahmed-section";
 import { Section } from "@/components/ui/section";
+import { LensSelector } from "@/components/recruiter-lens/lens-selector";
+import { LensStatus } from "@/components/recruiter-lens/lens-status";
 
 function PersonJsonLd() {
   const sameAs = [siteConfig.social.github, siteConfig.social.linkedin].filter(Boolean);
@@ -41,6 +44,7 @@ export default function HomePage() {
     <>
       <PersonJsonLd />
       <Hero />
+      <LensSelector />
       <About />
       <Experience />
       <Practice />
@@ -55,7 +59,9 @@ export default function HomePage() {
         <HowIBuild />
       </Section>
       <Education />
+      <AskAhmedSection />
       <Contact />
+      <LensStatus />
     </>
   );
 }

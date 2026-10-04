@@ -1,10 +1,15 @@
-import { Download, Mail } from "lucide-react";
+import { AlertCircle, Download, Mail } from "lucide-react";
 import { siteConfig } from "@/config/site";
+import { contactFormCopy } from "@/data/contact";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { CopyEmailButton } from "@/components/ui/copy-email-button";
 import { GitHubIcon, LinkedInIcon } from "@/components/ui/brand-icons";
+import { ContactForm } from "@/components/contact/contact-form";
 
 export function Contact() {
   const { github, linkedin } = siteConfig.social;
+  // Only this boolean reaches the client; the form posts to /api/contact.
+  const formAvailable = isSupabaseConfigured();
   return (
     <section id="contact" aria-labelledby="contact-heading" className="relative py-20 sm:py-28">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -61,6 +66,28 @@ export function Contact() {
                 ) : null}
               </ul>
             ) : null}
+
+            <div className="mx-auto mt-12 max-w-xl">
+              <p className="mb-6 flex items-center gap-4 font-mono text-[11px] uppercase tracking-wider text-subtle">
+                <span aria-hidden="true" className="h-px flex-1 bg-line" />
+                {contactFormCopy.divider}
+                <span aria-hidden="true" className="h-px flex-1 bg-line" />
+              </p>
+              {formAvailable ? (
+                <ContactForm email={siteConfig.email} />
+              ) : (
+                <p className="flex items-start gap-3 rounded-xl border border-line bg-white/[0.02] p-4 text-left text-sm leading-relaxed text-muted">
+                  <AlertCircle size={16} className="mt-0.5 shrink-0 text-blue" aria-hidden="true" />
+                  <span>
+                    {contactFormCopy.notConfigured}{" "}
+                    <a href={`mailto:${siteConfig.email}`} className="font-medium text-fg underline decoration-white/30 underline-offset-4 hover:decoration-cyan">
+                      {siteConfig.email}
+                    </a>
+                    .
+                  </span>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

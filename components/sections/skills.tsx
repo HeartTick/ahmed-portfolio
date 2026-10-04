@@ -1,6 +1,7 @@
 import { BrainCircuit, Cloud, Database, GitBranch, Server, type LucideIcon } from "lucide-react";
 import { skillGroups, type SkillIcon } from "@/data/skills";
 import { Section } from "@/components/ui/section";
+import { lensAttrs, lensesForSkill, lensesForSkills } from "@/lib/recruiter-lens/relevance";
 import { cn } from "@/lib/utils";
 
 const icons: Record<SkillIcon, LucideIcon> = {
@@ -26,6 +27,7 @@ export function Skills() {
             <article
               key={group.id}
               className={cn("reveal card p-6", i < 2 ? "lg:col-span-3" : "lg:col-span-2")}
+              {...lensAttrs(lensesForSkills(group.skills), { dim: false })}
             >
               <div className="flex items-center gap-3">
                 <span className="grid size-9 place-items-center rounded-lg border border-line bg-white/[0.03] text-cyan">
@@ -36,7 +38,7 @@ export function Skills() {
               <p className="mt-3 text-sm text-muted">{group.description}</p>
               <ul className="mt-4 flex flex-wrap gap-2">
                 {group.skills.map((s) => (
-                  <li key={s} className="chip">
+                  <li key={s} className="chip" {...lensAttrs(lensesForSkill(s))}>
                     {s}
                   </li>
                 ))}
