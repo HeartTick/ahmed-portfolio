@@ -147,6 +147,7 @@
   }
 
   .chip {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
@@ -223,6 +224,106 @@
     color: var(--color-fg);
     border-color: var(--color-line-strong);
     background: rgb(255 255 255 / 0.05);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Recruiter Lens                                                       */
+/*                                                                      */
+/* <html data-lens="backend|cloud|ai"> is set by the lens selector.     */
+/* Items carry data-lens-tags (matching lenses) and, for leaf items,    */
+/* data-lens-dim. With no data-lens attribute (Full Profile) none of    */
+/* these rules apply, so the page renders exactly as without the lens.  */
+/* ------------------------------------------------------------------ */
+
+@layer components {
+  [data-lens-tags] {
+    transition:
+      opacity 250ms ease,
+      border-color 250ms ease,
+      background-color 250ms ease,
+      box-shadow 250ms ease,
+      color 250ms ease;
+  }
+
+  .lens-badge {
+    display: none;
+  }
+
+  /* Non-matching leaf items fade slightly. 0.75 keeps text above 4.5:1 contrast. */
+  :root[data-lens="backend"] [data-lens-dim]:not([data-lens-tags~="backend"]),
+  :root[data-lens="cloud"] [data-lens-dim]:not([data-lens-tags~="cloud"]),
+  :root[data-lens="ai"] [data-lens-dim]:not([data-lens-tags~="ai"]) {
+    opacity: 0.75;
+  }
+
+  /* Matching items. */
+  :is(
+    :root[data-lens="backend"] [data-lens-tags~="backend"],
+    :root[data-lens="cloud"] [data-lens-tags~="cloud"],
+    :root[data-lens="ai"] [data-lens-tags~="ai"]
+  ) {
+    /* Chips: accent border and tint, plus a corner dot (a shape cue, not only colour). */
+    &.chip {
+      border-color: rgb(34 211 238 / 0.5);
+      background: rgb(34 211 238 / 0.08);
+      color: var(--color-fg);
+    }
+    &.chip::after {
+      content: "";
+      position: absolute;
+      top: -2px;
+      right: -2px;
+      width: 7px;
+      height: 7px;
+      border-radius: 9999px;
+      background: var(--color-cyan);
+      box-shadow: 0 0 0 2px var(--color-bg);
+    }
+
+    /* Cards: accent edge and a soft glow. */
+    &.card {
+      border-color: rgb(34 211 238 / 0.35);
+      box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.04),
+        0 0 0 1px rgb(34 211 238 / 0.12),
+        0 0 40px -16px rgb(34 211 238 / 0.5);
+    }
+
+    /* Experience bullets: brighter text and a bar in the left margin. */
+    &[data-lens-bullet] {
+      color: var(--color-fg);
+    }
+    &[data-lens-bullet]::before {
+      content: "";
+      position: absolute;
+      left: -0.875rem;
+      top: 0.2em;
+      bottom: 0.2em;
+      width: 2px;
+      border-radius: 9999px;
+      background: var(--color-cyan);
+    }
+
+    /* "Relevant to this lens" tag, sitting on the card's top edge. */
+    & > .lens-badge {
+      position: absolute;
+      top: -0.7rem;
+      left: 1.25rem;
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      border-radius: 9999px;
+      border: 1px solid rgb(34 211 238 / 0.4);
+      background: var(--color-bg);
+      padding: 0.125rem 0.6rem;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-cyan);
+    }
   }
 }
 

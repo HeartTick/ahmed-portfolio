@@ -2,7 +2,9 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { AlertCircle, ArrowUp, CornerDownLeft, RotateCcw, Sparkles, Square } from "lucide-react";
-import { assistantCopy, suggestedQuestions } from "@/data/assistant";
+import { assistantCopy } from "@/data/assistant";
+import { recruiterLenses } from "@/data/recruiter-lenses";
+import { useRecruiterLens } from "@/lib/recruiter-lens/store";
 import { ASK_AHMED_ENDPOINT, MAX_QUESTION_LENGTH } from "@/lib/ai/limits";
 import { AnswerText } from "@/components/assistant/answer-text";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,9 @@ export function AskAhmed({ available }: { available: boolean }) {
   const hintId = useId();
 
   const busy = status === "loading" || status === "streaming";
+  // Recruiter Lens only changes which suggestions are offered; the request and
+  // the AI's grounding context are identical for every lens.
+  const lens = useRecruiterLens();
   const canAsk = available && !limitReached;
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -134,7 +139,13 @@ export function AskAhmed({ available }: { available: boolean }) {
     inputRef.current?.focus();
   }
 
-  const remaining = suggestedQuestions.filter((s) => s !== question);
+  // Every lens's chips are rendered in one grid cell (inactive ones invisible
+  // and inert), so the area keeps the height of the longest list and switching
+  // lenses never shifts the page.
+  const suggestionLists = recruiterLenses.map((l) => ({
+    id: l.id,
+    items: question ? l.suggestedQuestions.filter((s) => s !== question).slice(0, 3) : l.suggestedQuestions,
+  }));
   const showSuggestions = canAsk && !busy && status !== "error";
   const remainingHint =
     !limitReached && !busy && questionsLeft !== null && questionsLeft <= REMAINING_HINT_THRESHOLD
@@ -231,19 +242,27 @@ export function AskAhmed({ available }: { available: boolean }) {
             <p className="font-mono text-[11px] uppercase tracking-wider text-subtle">
               {question ? "Ask something else" : "Try asking"}
             </p>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {(question ? remaining.slice(0, 3) : suggestedQuestions).map((s) => (
-                <li key={s}>
-                  <button
-                    type="button"
-                    onClick={() => void ask(s)}
-                    className="rounded-full border border-line bg-white/[0.03] px-3 py-1.5 text-left text-[13px] leading-snug text-muted transition-colors hover:border-cyan/40 hover:text-fg"
-                  >
-                    {s}
-                  </button>
-                </li>
+            <div className="mt-3 grid">
+              {suggestionLists.map((list) => (
+                <ul
+                  key={list.id}
+                  inert={list.id !== lens}
+                  className={cn("flex flex-wrap content-start gap-2 [grid-area:1/1]", list.id !== lens && "invisible")}
+                >
+                  {list.items.map((s) => (
+                    <li key={s}>
+                      <button
+                        type="button"
+                        onClick={() => void ask(s)}
+                        className="rounded-full border border-line bg-white/[0.03] px-3 py-1.5 text-left text-[13px] leading-snug text-muted transition-colors hover:border-cyan/40 hover:text-fg"
+                      >
+                        {s}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               ))}
-            </ul>
+            </div>
           </div>
         ) : null}
 

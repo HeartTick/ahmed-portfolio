@@ -4,6 +4,8 @@ import { projects } from "@/data/projects";
 import { Section } from "@/components/ui/section";
 import { Spotlight } from "@/components/ui/spotlight";
 import { FlowDiagram } from "@/components/projects/flow-diagram";
+import { LensBadge } from "@/components/recruiter-lens/lens-badge";
+import { lensAttrs, lensesForProject } from "@/lib/recruiter-lens/relevance";
 
 export function Projects() {
   return (
@@ -15,44 +17,48 @@ export function Projects() {
     >
       <div className="grid gap-6 lg:grid-cols-2">
         {projects.map((project) => (
-          <Spotlight key={project.slug} className="reveal group flex flex-col p-6 sm:p-8">
-            <div className="flex items-center justify-between gap-3">
-              <span className="chip text-[11px]">
-                <FlaskConical size={12} className="text-violet" aria-hidden="true" />
-                {project.badge}
-              </span>
-              <ArrowUpRight
-                size={18}
-                aria-hidden="true"
-                className="text-subtle transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
-              />
-            </div>
+          // `reveal` sits on a wrapper: its scroll animation pins opacity, which would cancel lens dimming.
+          <div key={project.slug} className="reveal">
+            <Spotlight className="group flex h-full flex-col p-6 sm:p-8" {...lensAttrs(lensesForProject(project.slug))}>
+              <LensBadge />
+              <div className="flex items-center justify-between gap-3">
+                <span className="chip text-[11px]">
+                  <FlaskConical size={12} className="text-violet" aria-hidden="true" />
+                  {project.badge}
+                </span>
+                <ArrowUpRight
+                  size={18}
+                  aria-hidden="true"
+                  className="text-subtle transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
+                />
+              </div>
 
-            <h3 className="mt-5 text-xl font-semibold tracking-tight text-fg text-balance">
-              <Link
-                href={`/projects/${project.slug}`}
-                className="after:absolute after:inset-0 after:rounded-[1.25rem] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-cyan"
-              >
-                {project.title}
-              </Link>
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-muted sm:text-[15px]">{project.summary}</p>
+              <h3 className="mt-5 text-xl font-semibold tracking-tight text-fg text-balance">
+                <Link
+                  href={`/projects/${project.slug}`}
+                  className="after:absolute after:inset-0 after:rounded-[1.25rem] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-cyan"
+                >
+                  {project.title}
+                </Link>
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-muted sm:text-[15px]">{project.summary}</p>
 
-            <FlowDiagram slug={project.slug} steps={project.flow} compact className="mt-6" />
+              <FlowDiagram slug={project.slug} steps={project.flow} compact className="mt-6" />
 
-            <div className="mt-6 flex flex-1 items-end justify-between gap-4">
-              <ul className="flex flex-wrap gap-2" aria-label="Technologies">
-                {project.tech.map((t) => (
-                  <li key={t} className="chip">
-                    {t}
-                  </li>
-                ))}
-              </ul>
-              <span className="hidden shrink-0 text-sm text-muted transition-colors group-hover:text-fg sm:inline">
-                Case study
-              </span>
-            </div>
-          </Spotlight>
+              <div className="mt-6 flex flex-1 items-end justify-between gap-4">
+                <ul className="flex flex-wrap gap-2" aria-label="Technologies">
+                  {project.tech.map((t) => (
+                    <li key={t} className="chip">
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+                <span className="hidden shrink-0 text-sm text-muted transition-colors group-hover:text-fg sm:inline">
+                  Case study
+                </span>
+              </div>
+            </Spotlight>
+          </div>
         ))}
       </div>
     </Section>

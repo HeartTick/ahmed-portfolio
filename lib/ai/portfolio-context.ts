@@ -45,7 +45,7 @@ ${roles
     (r) => `### ${r.title} at ${r.company} (${r.companyLegal}), ${r.start} – ${r.end}, ${r.mode}
 One-line summary (use this wording when mentioning the role in passing): ${r.summary}
 Résumé statements for this role (each line is a separate fact; keep its exact meaning and verbs, and never merge two lines into one sentence):
-${list(r.highlights)}
+${list(r.highlights.map((h) => h.text))}
 Technologies: ${r.stack.join(", ")}.
 (These apply to the role as a whole. They don't say which technology was used for which task, how technologies were combined, or for how long.)
 Nothing else is stated about this role. Don't attribute other roles' work or technologies to it.`,
